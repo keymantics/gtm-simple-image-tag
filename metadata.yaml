@@ -1,0 +1,5 @@
+homepage: "https://www.kmtx.com/"
+documentation: "https://www.kmtx.com/privacy/"
+versions:
+  - sha: NA
+    changeNotes: Initial release.
