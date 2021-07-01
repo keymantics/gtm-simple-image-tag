@@ -99,6 +99,7 @@ const generateRandom = require('generateRandom');
 const setCookie = require('setCookie');
 const getCookieValues = require('getCookieValues');
 const getTimestampMillis = require('getTimestampMillis');
+const encodeUriComponent = require('encodeUriComponent');
 
 
 // If there is already a kmtx cookie no need to create new uuid, but we need to update expire date to 30 days.
@@ -112,7 +113,7 @@ setCookie('_km', cid, {'max-age': 30 * 24 * 60 * 60, 'secure': true});
 let isTimer = copyFromDataLayer('event') === 'kmtx.timer';
 
 var url = 'https://t.kmtx.io/s?' +
-  'aid=' + data.aid +
+  'aid=' + encodeUriComponent(data.aid) +
   '&cid=' + cid +
   '&eid=' + uuid() +
   '&a=' + (isTimer ? 'close' : data.event) +
@@ -122,7 +123,7 @@ var url = 'https://t.kmtx.io/s?' +
   '&ts=' + getTimestampMillis() +
   '&trk=trkid' +
   '&t=img' +
-  '&sid=' + data.sid;
+  '&sid=' + encodeUriComponent(data.sid);
 
 sendPixel(url, data.gtmOnSuccess(), data.gtmOnFailure());
 
