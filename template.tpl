@@ -112,7 +112,7 @@ setCookie('_km', cid, {'max-age': 30 * 24 * 60 * 60, 'secure': true});
 // If event is a kmtx.timer then it's a qualified visit, we can record a close.
 let isTimer = copyFromDataLayer('event') === 'kmtx.timer';
 
-var url = 'https://t.kmtx.io/s?' +
+var sUrl = 'https://t.kmtx.io/s?' +
   'aid=' + encodeUriComponent(data.aid) +
   '&cid=' + cid +
   '&eid=' + uuid() +
@@ -122,10 +122,17 @@ var url = 'https://t.kmtx.io/s?' +
   '&ref=' + encodeUri(getReferrerUrl()) +
   '&ts=' + getTimestampMillis() +
   '&trk=trkid' +
-  '&t=img' +
-  '&sid=' + encodeUriComponent(data.sid);
+  '&t=img';
 
-sendPixel(url, data.gtmOnSuccess(), data.gtmOnFailure());
+sendPixel(sUrl, data.gtmOnSuccess(), data.gtmOnFailure());
+
+if (data.sid) {
+  var tsUrl = 'https://t.kmtx.io/ts?' +
+    'aid=' + encodeUriComponent(data.aid) +
+    '&sid=' + encodeUriComponent(data.sid);
+
+  sendPixel(tsUrl, data.gtmOnSuccess(), data.gtmOnFailure());
+}
 
 // Function to generate random UUIDv4
 function uuid() {
@@ -413,13 +420,10 @@ scenarios:
     assertApi('gtmOnFailure').wasCalled();
 - name: sendPixel is invoked with right url
   code: |
-    var triggerUrl;
+    var triggerUrls = [];
 
     mock('sendPixel', function(url, onSuccess, onFailure) {
-      triggerUrl = url;
-      if (onSuccess != null) {
-        onSuccess();
-      }
+      triggerUrls.push(url);
     });
 
     // Call runCode to run the template's code.
@@ -434,19 +438,16 @@ scenarios:
 
     // Verify that the URL was correctly fired
     assertApi('sendPixel').wasCalled();
-    assertThat(triggerUrl).isEqualTo('https://t.kmtx.io/s?aid=1&cid=7a00007a-0000-47a0-8007-a00007a00007&eid=7a00007a-0000-47a0-8007-a00007a00007&a=visit&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img&sid=');
+    assertThat(triggerUrls.length).isEqualTo(1);
+    assertThat(triggerUrls[0]).isEqualTo('https://t.kmtx.io/s?aid=1&cid=7a00007a-0000-47a0-8007-a00007a00007&eid=7a00007a-0000-47a0-8007-a00007a00007&a=visit&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img');
 - name: sendPixel is invoked with close event
   code: |
     mock('copyFromDataLayer', 'kmtx.timer');
 
-    var triggerUrl;
-
+    var triggerUrls = [];
 
     mock('sendPixel', function(url, onSuccess, onFailure) {
-      triggerUrl = url;
-      if (onSuccess != null) {
-        onSuccess();
-      }
+      triggerUrls.push(url);
     });
 
     // Call runCode to run the template's code.
@@ -461,15 +462,10 @@ scenarios:
 
     // Verify that the URL was correctly fired
     assertApi('sendPixel').wasCalled();
-    assertThat(triggerUrl).isEqualTo('https://t.kmtx.io/s?aid=1&cid=7a00007a-0000-47a0-8007-a00007a00007&eid=7a00007a-0000-47a0-8007-a00007a00007&a=close&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img&sid=');
+    assertThat(triggerUrls.length).isEqualTo(1);
+    assertThat(triggerUrls[0]).isEqualTo('https://t.kmtx.io/s?aid=1&cid=7a00007a-0000-47a0-8007-a00007a00007&eid=7a00007a-0000-47a0-8007-a00007a00007&a=close&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img');
 - name: getCookieValues and setCookie are invoked
   code: |-
-    mock('sendPixel', function(url, onSuccess, onFailure) {
-      if (onSuccess != null) {
-        onSuccess();
-      }
-    });
-
     // Call runCode to run the template's code.
     runCode({
       aid: '1',
@@ -490,13 +486,10 @@ scenarios:
     assertApi('getCookieValues').wasCalled();
 - name: setCookie is invoked with new UUID
   code: |-
-    var triggerUrl;
+    var triggerUrls = [];
 
     mock('sendPixel', function(url, onSuccess, onFailure) {
-      triggerUrl = url;
-      if (onSuccess != null) {
-        onSuccess();
-      }
+      triggerUrls.push(url);
     });
 
     mock('getCookieValues', function(name, decode) {
@@ -520,19 +513,17 @@ scenarios:
 
     // Verify that the URL was correctly fired
     assertApi('sendPixel').wasCalled();
-    assertThat(triggerUrl).isEqualTo('https://t.kmtx.io/s?aid=1&cid=7a00007a-0000-47a0-8007-a00007a00007&eid=7a00007a-0000-47a0-8007-a00007a00007&a=visit&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img&sid=');
+    assertThat(triggerUrls.length).isEqualTo(1);
+    assertThat(triggerUrls[0]).isEqualTo('https://t.kmtx.io/s?aid=1&cid=7a00007a-0000-47a0-8007-a00007a00007&eid=7a00007a-0000-47a0-8007-a00007a00007&a=visit&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img');
 
     // Verify that the Cookie was correctly set
     assertApi('setCookie').wasCalledWith('_km', '7a00007a-0000-47a0-8007-a00007a00007', cookie_options);
 - name: setCookie is invoked with old UUID
   code: |-
-    var triggerUrl;
+    var triggerUrls = [];
 
     mock('sendPixel', function(url, onSuccess, onFailure) {
-      triggerUrl = url;
-      if (onSuccess != null) {
-        onSuccess();
-      }
+      triggerUrls.push(url);
     });
 
     mock('getCookieValues', function(name, decode) {
@@ -556,11 +547,35 @@ scenarios:
 
     // Verify that the URL was correctly fired
     assertApi('sendPixel').wasCalled();
-    assertThat(triggerUrl).isEqualTo('https://t.kmtx.io/s?aid=1&cid=00000000-0000-0000-0000-000000000000&eid=7a00007a-0000-47a0-8007-a00007a00007&a=visit&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img&sid=');
+    assertThat(triggerUrls.length).isEqualTo(1);
+    assertThat(triggerUrls[0]).isEqualTo('https://t.kmtx.io/s?aid=1&cid=00000000-0000-0000-0000-000000000000&eid=7a00007a-0000-47a0-8007-a00007a00007&a=visit&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img');
 
     // Verify that the Cookie was correctly set
     assertApi('setCookie').wasCalledWith('_km', '00000000-0000-0000-0000-000000000000', cookie_options);
-setup: |-
+- name: sendPixel is invoked twice with SID
+  code: |
+    var triggerUrls = [];
+
+    mock('sendPixel', function(url, onSuccess, onFailure) {
+      triggerUrls.push(url);
+    });
+
+    // Call runCode to run the template's code.
+    runCode({
+      aid: '1',
+      event: 'visit',
+      sid: '1'
+    });
+
+    // Verify that the tag finished successfully.
+    assertApi('gtmOnSuccess').wasCalled();
+
+    // Verify that the URL was correctly fired
+    assertApi('sendPixel').wasCalled();
+    assertThat(triggerUrls.length).isEqualTo(2);
+    assertThat(triggerUrls[0]).isEqualTo('https://t.kmtx.io/s?aid=1&cid=7a00007a-0000-47a0-8007-a00007a00007&eid=7a00007a-0000-47a0-8007-a00007a00007&a=visit&v=gtm_1&url=kmtx.io&ref=kmtx.io&ts=1&trk=trkid&t=img');
+    assertThat(triggerUrls[1]).isEqualTo('https://t.kmtx.io/ts?aid=1&sid=1');
+setup: |2-
 
   // Need to be mocked to fix the UUID
   mock('generateRandom', 1);
