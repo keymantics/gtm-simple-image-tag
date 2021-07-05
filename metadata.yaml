@@ -1,5 +1,5 @@
 homepage: "https://www.kmtx.com/"
 documentation: "https://www.kmtx.com/privacy/"
 versions:
-  - sha: b305f1cc81d65ea8e2b1ca010f928ff7dc68cf71
+  - sha: 5e91e3fb6f36e1fa2613a34f4893d534370b7e15
     changeNotes: Initial release.
